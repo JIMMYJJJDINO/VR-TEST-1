@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>VR Hub - Void Proof</title>
+<style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    canvas { display: block; }
+</style>
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/PointerLockControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/VRButton.js"></script>
+
+<script>
+// --------------------------------------------------
+// SCENE + CAMERA + RENDERER
+// --------------------------------------------------
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x222222);
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0, 1.6, 3);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+document.body.appendChild(renderer.domElement);
+document.body.appendChild(VRButton.createButton(renderer));
+
+// --------------------------------------------------
+// LIGHTING (BRIGHT SO YOU SEE EVERYTHING)
+// --------------------------------------------------
+const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
+scene.add(hemi);
+
+const dir = new THREE.DirectionalLight(0xffffff, 1);
+dir.position.set(5, 10, 7);
+scene.add(dir);
+
+// --------------------------------------------------
+// ROOM (FLOOR + WALLS)
+// --------------------------------------------------
+const room = new THREE.Group();
+
+// Floor
+const floorGeo = new THREE.PlaneGeometry(20, 20);
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI / 2;
+room.add(floor);
+
+// Walls
+const wallGeo = new THREE.PlaneGeometry(20, 5);
+const wallMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+
+function wall(x, z, rotY) {
+    const w = new THREE.Mesh(wallGeo, wallMat);
+    w.position.set(x, 2.5, z);
+    w.rotation.y = rotY;
+    return w;
+}
+
+room.add(wall(0, -10, 0));
+room.add(wall(0, 10, Math.PI));
+room.add(wall(-10, 0, Math.PI / 2));
+room.add(wall(10, 0, -Math.PI / 2));
+
+scene.add(room);
+
+// --------------------------------------------------
+// TEST OBJECT (BIG RED CUBE SO YOU CAN'T MISS IT)
+// --------------------------------------------------
+const cubeGeo = new THREE.BoxGeometry(1, 1, 1);
+const cubeMat = new THREE.MeshStandardMaterial({ color: 0xff3333 });
+const cube = new THREE.Mesh(cubeGeo, cubeMat);
+cube.position.set(0, 1.5, -3);
+scene.add(cube);
+
+// --------------------------------------------------
+// CONTROLS (MOUSE LOOK + WASD)
+// --------------------------------------------------
+const controls = new THREE.PointerLockControls(camera, document.body);
+
+document.body.addEventListener("click", () => {
+    controls.lock();
+});
+
+const keys = {};
+document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+function move(delta) {
+    const speed = 3 * delta;
+    if (keys["w"]) controls.moveForward(speed);
+    if (keys["s"]) controls.moveForward(-speed);
+    if (keys["a"]) controls.moveRight(-speed);
+    if (keys["d"]) controls.moveRight(speed);
+}
+
+// --------------------------------------------------
+// RENDER LOOP
+// --------------------------------------------------
+renderer.setAnimationLoop(() => {
+    move(0.016);
+    renderer.render(scene, camera);
+});
+
+// --------------------------------------------------
+// RESIZE
+// --------------------------------------------------
+window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+
+</body>
+</html>
+
